@@ -28,7 +28,7 @@
 
 ## Overview
 
-Raw merchant strings from Turkish credit card statements — such as `"*** STARBUCKS ISTANBUL ***"` or `"POS/001 MIGROS HYPER SUBE 5"` — are noisy, inconsistently formatted, and often contain POS terminal artifacts. This pipeline cleans, normalizes, and classifies them into a two-level taxonomy: **16 L1 categories** and **100+ active L2 sub-categories**.
+Raw merchant strings from Turkish credit card statements — such as `"IST/POS*0312 STARBUCKS - KARAKOY"` or `"POS/001 MIGROS HYPER SUBE 5"` — are noisy, inconsistently formatted, and often contain POS terminal artifacts. This pipeline cleans, normalizes, and classifies them into a two-level taxonomy: **16 L1 categories** and **100+ active L2 sub-categories**.
 
 **Key features:**
 
@@ -139,11 +139,11 @@ Training (`--mode`) and inference (`--inference-mode`) are configured independen
 
 ```
 # Direct L2 (single model)
-"STARBUCKS ISTANBUL"
+"IST/POS*0312 STRBCKS KFE SB-03"
     └─► BERTurk (100+ classes) ──► cafe_kahve  (conf: 0.82)
 
 # Cascade (default)
-"STARBUCKS ISTANBUL"
+"IST/POS*0312 STRBCKS KFE SB-03"
     └─► BERTurk L1 (16 classes) ──► yeme_icme    (conf: 0.94)
             └─► yeme_icme BERTurk L2 ──► cafe_kahve  (conf: 0.87)
                     └─► combined conf = √(0.94 × 0.87) = 0.904
@@ -250,7 +250,7 @@ python main.py predict "MERCHANT NAME" [--inference-mode cascade|l2|l1]
 ```
 
 ```bash
-python main.py predict "STARBUCKS ISTANBUL"
+python main.py predict "IST/POS*0312 STRBCKS KFE SB-03"
 python main.py predict "NETFLIX ABONELIK"  --inference-mode l2
 python main.py predict "SHELL PETROL"      --inference-mode l1
 ```
@@ -353,19 +353,19 @@ python main.py taxonomy
 | `yeme_icme` | restoran, fast_food, pastane_firin, bar_icki_servisi, yemek_siparis, cafe_kahve, diger_yeme_icme |
 | `market_gida` | supermarket, indirim_market, bakkal_tekel, kuruyemis_aktar, manav_kasap_sarkuteri, diger_market_gida |
 | `giyim_aksesuar` | giyim_magaza, ayakkabi, kuyumcu, saat, diger_giyim_aksesuar |
-| `online_alisveris` | eticaret_platform, yurt_disi_eticaret, kargo_lojistik, diger_online_alisveris |
+| `online_alisveris` | eticaret_platform, kargo_lojistik, diger_online_alisveris |
 | `elektronik` | elektronik_market, elektronik_servis, beyaz_esya, telefon_aksesuar, diger_elektronik |
 | `ev_yasam` | mobilya, dekorasyon, yapi_market, zuccaciye, ev_hizmet, oyuncak_cocuk, spor_urun, diger_ev_yasam |
-| `saglik` | eczane, hastane_klinik, optik, veteriner, saglik_urun, diger_saglik |
-| `kisisel_bakim` | berber_kuafor, guzellik_estetik, parfumeri, spa_masaj, kozmetik, diger_kisisel_bakim |
-| `ulasim` | taksi_uber, toplu_tasima, otopark, rent_a_car, akaryakit_yol, feribot, otoyol_kopru, bisiklet_scooter, tamir_servis, diger_ulasim |
-| `seyahat` | otel_konaklama, ucak_bileti, tur_acentesi, tatil_rezervasyon, diger_seyahat |
-| `eglence_kultur` | sinema_tiyatro, muzik_konser, oyun_oyuncak, spor_etkinlik, kitab_dergi, muzeum_gezi, dijital_oyun, diger_eglence |
-| `fatura_abonelik` | elektrik_su_dogalgaz, internet_telefon, sigorta_odeme, dijital_abonelik, okul_harci, uyelik_karti, vergi_harc, muhasebe_fintech, diger_fatura |
-| `finans_sigorta` | banka_islem, atm_nakit, doviz_bozma, yatirim, kripto, sigorta_porice, emeklilik, kredi_odeme, havale_eft, odeme_aracilari, diger_finans |
+| `saglik` | hastane_klinik, eczane, goz_optisyen, dis_hekimi, veteriner, diger_saglik |
+| `kisisel_bakim` | kuafor_berber_guzellik, spor_fitness, kozmetik_bakim, kuru_temizleme, terzi_dikis, diger_kisisel_bakim |
+| `ulasim` | toplu_tasima, taksi_ozel_tasimacilik, sehirlerarasi_ulasim, arac_bakim_servis, otopark, otoyol_kopru_gecis, mikromobilite_hizmeti, arac_kiralama, otomotiv_aksesuar, diger_ulasim |
+| `seyahat` | otel_konaklama, seyahat_acentesi_tur, duty_free, ucak_havayolu, diger_seyahat |
+| `eglence_kultur` | sinema_tiyatro, konser_festival, muze_sergi, hayvanat_bahcesi_akvaryum, sans_oyunlari_bahis, spor_etkinlik, eglence_parki, diger_eglence_kultur |
+| `fatura_abonelik` | elektrik_fatura, dogalgaz_fatura, su_fatura, tv_yayin, aidat_odeme, dijital_abonelik, gsm_fatura, internet_fatura, diger_fatura_abonelik |
+| `finans_sigorta` | nakit_cekim_transfer, yatirim, bagis, konut_kredisi_odeme, tasit_kredisi_odeme, ihtiyac_kredisi_odeme, kart_ekstre_odemesi, bireysel_emeklilik_odeme, sigorta, kamu_yukumluluk_odeme, diger_finans_sigorta |
 | `akaryakit` | akaryakit_istasyonu, elektrikli_arac_sarj, diger_akaryakit |
-| `egitim` | okul_universite, kurs_dershane, kitap_kirtasiye, egitim_yazilim, spor_kurs, diger_egitim |
-| `diger` | diger_isyeri, tanimlanamayan_isyeri |
+| `egitim` | okul_universite, kurs_egitim_merkezi, cevrimici_egitim, kitap_kirtasiye, sinav_sertifika, diger_egitim |
+| `diger` | iade_iptal, tanimlanamayan_isyeri |
 
 Run `python main.py taxonomy` for the authoritative listing.
 
@@ -437,13 +437,34 @@ class EnrichmentResult:
 
 ## Performance
 
-Evaluation on a held-out test set, single L2 BERTurk model:
+Evaluation on `master_test.csv` (3,061 samples) — BERTurk cascade model:
 
 | Metric | L2 (fine-grained) | L1 (coarse) |
 |--------|-------------------|-------------|
-| Accuracy | 0.569 | 0.716 |
-| F1 Macro | 0.468 | 0.669 |
-| F1 Weighted | 0.518 | 0.709 |
+| Accuracy | 0.699 | 0.813 |
+| F1 Macro | 0.657 | 0.809 |
+| F1 Weighted | 0.684 | 0.812 |
+
+### Per-L1 Category Performance
+
+| L1 Category | F1 | Precision | Recall | n |
+|-------------|-----|-----------|--------|---|
+| `saglik` | 0.969 | 0.966 | 0.972 | 145 |
+| `finans_sigorta` | 0.906 | 0.881 | 0.931 | 247 |
+| `kisisel_bakim` | 0.877 | 0.800 | 0.971 | 140 |
+| `market_gida` | 0.856 | 0.876 | 0.837 | 465 |
+| `fatura_abonelik` | 0.851 | 0.782 | 0.932 | 177 |
+| `yeme_icme` | 0.849 | 0.899 | 0.803 | 590 |
+| `egitim` | 0.819 | 0.735 | 0.924 | 105 |
+| `eglence_kultur` | 0.814 | 0.805 | 0.822 | 146 |
+| `akaryakit` | 0.795 | 0.879 | 0.725 | 80 |
+| `elektronik` | 0.778 | 0.878 | 0.699 | 123 |
+| `ulasim` | 0.776 | 0.756 | 0.796 | 226 |
+| `online_alisveris` | 0.711 | 0.641 | 0.798 | 94 |
+| `seyahat` | 0.676 | 0.632 | 0.725 | 102 |
+| `ev_yasam` | 0.668 | 0.619 | 0.727 | 183 |
+| `giyim_aksesuar` | 0.599 | 0.736 | 0.505 | 216 |
+| `diger` | 1.000 | 1.000 | 1.000 | 22 |
 
 ### Training curve
 
@@ -458,14 +479,12 @@ L1 model fine-tuned on 14K samples (BERTurk, representative checkpoints):
 
 ### Targets
 
-| Stage | Metric | Target |
-|-------|--------|--------|
-| Single L2 (current) | F1 Macro | ~0.47 |
-| Cascade | F1 Macro | ~0.60+ |
-| Cascade + 50K samples | F1 Macro | ~0.70+ |
+| Stage | Metric | Value |
+|-------|--------|-------|
+| Cascade (current) | L2 F1 Macro | 0.657 |
+| Cascade (current) | L1 Accuracy | 0.813 |
+| Cascade + 50K samples | L2 F1 Macro | ~0.75+ |
 | Production | L1 Accuracy | 90%+ |
-
-The cascade architecture is expected to close the gap between L1 and L2 accuracy by confining each sub-model to its own category space.
 
 ---
 
