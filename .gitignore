@@ -38,9 +38,6 @@ data/
 *.swp
 *.swo
 
-# Web frontend (separate repository)
-frontend/
-
 # Claude Code project settings
 .claude/
 
@@ -53,3 +50,7 @@ desktop.ini
 *.log
 *.tmp
 *.bak
+
+
+# Old frontend version
+frontend_old_version/

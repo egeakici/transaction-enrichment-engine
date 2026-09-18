@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Ekstreler{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header__title">
+    <span class="page-header__title-icon">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4h12v2H4V4zm0 4h12v2H4V8zm0 4h8v2H4v-2z"/></svg>
+    </span>
+    <span data-i18n="stmt.title">Ekstreler</span>
+  </h1>
+  <p class="page-header__sub" data-i18n="stmt.subtitle">Kredi kartı ekstrenizi yapıştırın; tarih bazlı sıralama veya AI sınıflandırması uygulayın</p>
+</div>
+
+<div class="grid-2" style="align-items:start;">
+  <!-- ═══ SOL: GİRİŞ + GRAFİK ═══ -->
+  <div>
+    <div class="card">
+      <div class="card__header">
+        <span class="card__title">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4h12v2H4V4zm0 4h12v2H4V8zm0 4h8v2H4v-2z"/></svg>
+          <span data-i18n="stmt.card_title">Ekstre Metni</span>
+        </span>
+        <button class="btn btn--ghost btn--sm" onclick="loadSampleStatement()" data-i18n="stmt.btn_sample">Örnek Yükle</button>
+      </div>
+      <div class="card__body">
+        <div class="alert alert--info mb-2">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm1 11H9v-2h2v2zm0-4H9V5h2v4z"/></svg>
+          <span data-i18n="stmt.info" data-i18n-html>Her satır: <code style="background:var(--app-gray-100);padding:1px 5px;border-radius:3px;">Tarih &nbsp; İşlem Açıklaması &nbsp; Tutar</code> formatında olmalıdır.</span>
+        </div>
+        <div class="form-group mb-2">
+          <textarea id="statementText" class="form-control"
+            rows="14"
+            placeholder="Ekstre satırlarını buraya yapıştırın. Örnek:&#10;01.03.2024   MIGROS HYPERMARKET        312,50&#10;02.03.2024   STARBUCKS ISTINYE PARK      87,00&#10;03.03.2024   SHELL AKARYAKIT            450,00&#10;04.03.2024   AMAZON TR                  199,90&#10;05.03.2024   ECZANE YILMAZ               65,00&#10;06.03.2024   LCWAIKIKI AVM              245,00"></textarea>
+        </div>
+
+        <!-- Mod Seçici -->
+        <div class="mode-selector">
+          <div class="mode-card selected" id="modeCardSorted" onclick="selectMode('sorted')">
+            <div class="mode-card__title">
+              <svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px;"><path d="M2 4h12v1.5H2V4zm0 3h9v1.5H2V7zm0 3h6v1.5H2V10z"/></svg>
+              <span data-i18n="stmt.mode_sorted">Tarihe Göre Sıralı</span>
+            </div>
+            <div class="mode-card__desc" data-i18n="stmt.mode_sorted_desc">Sınıflandırma yapılmaz. Tüm işlemler tarih sırasıyla listelenir.</div>
+          </div>
+          <div class="mode-card" id="modeCardClassified" onclick="selectMode('classified')">
+            <div class="mode-card__title">
+              <svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px;"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm1 10H7V9h2v2zm0-4H7V4h2v3z"/></svg>
+              <span data-i18n="stmt.mode_ai">AI Sınıflandırması</span>
+            </div>
+            <div class="mode-card__desc" data-i18n="stmt.mode_ai_desc">İşlemler L1 kategorilerine göre gruplandırılır; L2 kategorisi eklenir.</div>
+          </div>
+        </div>
+
+        <input type="hidden" id="selectedMode" value="sorted" />
+
+        <!-- Model Seçici — yalnızca AI Sınıflandırması seçilince görünür -->
+        <div id="inferenceModelSelector" class="form-group mt-2 hidden">
+          <label class="form-label" style="font-size:.8rem;color:var(--app-gray-600);" data-i18n="stmt.model_label">Kullanılacak Model</label>
+          <select id="inferenceMode" class="form-control">
+            <option value="cascade" data-i18n="stmt.mode_cascade">Cascade (L1 → L2 hiyerarşik)</option>
+            <option value="l2" data-i18n="stmt.mode_l2">L2 Tekli Model</option>
+            <option value="l1" data-i18n="stmt.mode_l1">Sadece L1</option>
+          </select>
+        </div>
+
+        <div class="btn-group">
+          <button id="btnAnalyze" class="btn btn--primary btn--lg" onclick="analyzeStatement()">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 4l11 6-11 6V4z"/></svg>
+            <span id="btnAnalyzeText" data-i18n="stmt.btn_analyze_sort">Sırala ve Göster</span>
+          </button>
+          <button class="btn btn--ghost" onclick="clearStatement()" data-i18n="stmt.btn_clear">Temizle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PASTA GRAFİĞİ (sol sütun altı) ═══ -->
+    <div id="chartColumn" style="margin-top:16px;">
+      <div class="card" id="chartCard">
+        <div class="card__header">
+          <span class="card__title">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14A6 6 0 1110 4a6 6 0 010 12z"/><path d="M10 4v6l4 2"/></svg>
+            <span data-i18n="stmt.chart_title">Kategori Dağılımı</span>
+          </span>
+        </div>
+        <div class="card__body" style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+          <div id="chartEmpty" style="text-align:center;padding:40px 0;color:var(--app-gray-400);font-size:.85rem;" data-i18n="stmt.chart_empty">
+            AI Sınıflandırması çalıştırın
+          </div>
+          <canvas id="pieChart" width="220" height="220" style="display:none;"></canvas>
+          <div id="pieLegend" style="width:100%;display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SAĞ: SONUÇ PANELİ ═══ -->
+  <div id="resultColumn">
+    <!-- Yükleme -->
+    <div id="stmtLoading" class="card hidden">
+      <div class="card__body">
+        <div class="loading-overlay">
+          <div class="spinner"></div>
+          <span id="loadingMsg">İşleniyor...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Boş durum -->
+    <div id="stmtEmpty" class="card">
+      <div class="card__body" style="text-align:center;padding:60px 20px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"
+             style="width:64px;height:64px;margin:0 auto 16px;display:block;opacity:.25">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+        <p style="color:var(--app-gray-500);font-size:0.9rem;" data-i18n="stmt.empty">Ekstre metnini girin ve analiz edin.</p>
+      </div>
+    </div>
+
+    <!-- Özet İstatistikler (dolu olduğunda göster) -->
+    <div id="stmtStats" class="stat-grid hidden"></div>
+
+    <!-- Sonuç Tablosu -->
+    <div id="stmtResult" class="hidden"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/statement.js') }}"></script>
+{% endblock %}

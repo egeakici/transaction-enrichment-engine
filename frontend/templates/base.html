@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Transaction Engine Lab{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3" />
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- ══════════════════ ÜST ŞERIT (ince sarı) ══════════════════ -->
+  <div class="app-topbar">
+    <div class="app-topbar__inner">
+      <button onclick="toggleLanguage()" class="app-topbar__link" style="background:none;border-top:none;border-left:none;border-right:none;cursor:pointer;margin-right:20px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;vertical-align:-1px;margin-right:4px;">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        <span id="langToggleLabel">EN</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════ HEADER (siyah, logo + nav) ══════════════════ -->
+  <header class="app-header">
+    <div class="app-header__inner">
+
+      <!-- Logo -->
+      <a href="{{ url_for('ml.dashboard') }}" class="app-header__logo">
+        <span class="app-header__brand">Transaction Engine Lab</span>
+      </a>
+
+      <!-- Nav -->
+      <nav class="app-nav">
+        <a href="{{ url_for('ml.dashboard') }}"
+           class="app-nav__link {% if request.blueprint == 'ml' %}app-nav__link--active{% endif %}">
+          <span data-i18n="nav.analysis">Analiz</span>
+        </a>
+        <a href="{{ url_for('statement.index') }}"
+           class="app-nav__link {% if request.blueprint == 'statement' %}app-nav__link--active{% endif %}">
+          <span data-i18n="nav.statements">Ekstreler</span>
+        </a>
+      </nav>
+
+    </div>
+    <!-- Alt altın çizgi -->
+    <div class="app-header__underline"></div>
+  </header>
+
+  <!-- ══════════════════ MAIN ══════════════════ -->
+  <main class="app-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- ══════════════════ FOOTER ══════════════════ -->
+  <footer class="app-footer">
+    <div class="app-footer__inner">
+      <span data-i18n="footer.copy">Transaction Enrichment & Classifier © 2026</span>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

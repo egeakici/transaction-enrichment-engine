@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}Ekstre Analizleri{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header__title">
+    <span class="page-header__title-icon">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm1 11H9v-2h2v2zm0-4H9V5h2v4z"/></svg>
+    </span>
+    <span data-i18n="ml.title">Analiz</span>
+  </h1>
+  <p class="page-header__sub" data-i18n="ml.subtitle">Model eğitimi, değerlendirme, görselleştirme ve tahmin işlemleri</p>
+</div>
+
+<!-- ═══ Tab Navigasyonu ═══ -->
+<div class="tabs" id="mainTabs">
+  <button class="tab-btn active" data-tab="predict">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 12l-3-3 1.4-1.4L9 9.2l4.6-4.6L15 6l-6 6z"/></svg>
+    <span data-i18n="tab.predict">Tahmin</span>
+  </button>
+  <button class="tab-btn" data-tab="train">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 2h12a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2zm4 9l2 2 4-4-1.4-1.4L10 10.2l-.6-.6L8 11z"/></svg>
+    <span data-i18n="tab.train">Eğitim</span>
+  </button>
+  <button class="tab-btn" data-tab="evaluate">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 1016 0A8 8 0 002 10zm7-5h2v6H9V5zm0 8h2v2H9v-2z"/></svg>
+    <span data-i18n="tab.evaluate">Değerlendirme</span>
+  </button>
+  <button class="tab-btn" data-tab="tsne">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 3h14v14H3V3zm2 2v10h10V5H5z"/></svg>
+    t-SNE
+  </button>
+  <button class="tab-btn" data-tab="experiments">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 3h10l2 4-7 10L3 7l2-4zm5 9l4-6H6l4 6z"/></svg>
+    <span data-i18n="tab.experiments">Deneyler</span>
+  </button>
+</div>
+
+<!-- ════════════════════ TAB: TAHMİN ════════════════════ -->
+<div id="tab-predict" class="tab-panel active">
+  <div class="grid-2">
+    <div class="card">
+      <div class="card__header">
+        <span class="card__title">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2z"/></svg>
+          <span data-i18n="predict.card_title">Merchant Tahmini</span>
+        </span>
+      </div>
+      <div class="card__body">
+        <div class="form-group">
+          <label class="form-label" data-i18n="predict.label_merchant">İşyeri Adı</label>
+          <input type="text" id="predictMerchant" class="form-control"
+                 data-i18n="predict.placeholder"
+                 placeholder="Örn: MIGROS HYPERMARKET, STARBUCKS..."
+                 autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="predict.label_mode">Çıkarım Modu</label>
+          <select id="predictMode" class="form-control">
+            <option value="cascade" data-i18n="predict.mode_cascade">Cascade (L1 → L2 hiyerarşik)</option>
+            <option value="l2" data-i18n="predict.mode_l2">L2 Tekli Model</option>
+            <option value="l1" data-i18n="predict.mode_l1">Sadece L1</option>
+          </select>
+        </div>
+        <div class="btn-group mt-2">
+          <button id="btnPredict" class="btn btn--primary btn--lg" onclick="runPredict()">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 4l11 6-11 6V4z"/></svg>
+            <span data-i18n="predict.btn_predict">Tahmin Et</span>
+          </button>
+          <button class="btn btn--ghost" onclick="clearPredict()" data-i18n="predict.btn_clear">Temizle</button>
+        </div>
+        <div class="mt-3">
+          <p class="text-muted mb-1" data-i18n="predict.quick_label">Hızlı örnekler:</p>
+          <div style="display:flex;flex-wrap:wrap;gap:7px;">
+            {% for ex in ["MIGROS HYPERMARKET", "STARBUCKS", "SHELL AKARYAKIT", "AMAZON", "ECZANE BIRLIK", "LCWAIKIKI", "ISTANBUL KULTUR SANAT"] %}
+            <button class="btn btn--ghost btn--sm" onclick="quickPredict('{{ ex }}')">{{ ex }}</button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__header">
+        <span class="card__title">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 12l-3-3 1.4-1.4L9 9.2l4.6-4.6L15 6l-6 6z"/></svg>
+          <span data-i18n="predict.result_title">Sonuç</span>
+        </span>
+      </div>
+      <div class="card__body">
+        <div id="predictLoading" class="loading-overlay hidden">
+          <div class="spinner"></div>
+          <span data-i18n="predict.loading">Sınıflandırılıyor...</span>
+        </div>
+        <div id="predictResult" class="hidden"></div>
+        <div id="predictEmpty" class="text-muted" style="text-align:center;padding:40px 0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+               style="width:48px;height:48px;margin:0 auto 12px;display:block;opacity:.35">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <p data-i18n="predict.empty">Bir işyeri adı girin ve "Tahmin Et"e basın.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ TAB: EĞİTİM ════════════════════ -->
+<div id="tab-train" class="tab-panel">
+  <div class="grid-2">
+    <div class="card">
+      <div class="card__header">
+        <span class="card__title">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 2h12v2H4V2zm0 4h12v2H4V6zm0 4h8v2H4v-2z"/></svg>
+          <span data-i18n="train.card_title">Eğitim Parametreleri</span>
+        </span>
+      </div>
+      <div class="card__body">
+        <div class="form-group">
+          <label class="form-label" data-i18n="train.label_dataset">Veri Seti</label>
+          <select id="trainDataset" class="form-control">
+            {% for ds in datasets %}
+            <option value="{{ ds.path }}">{{ ds.name }} ({{ ds.size_kb }} KB)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="train.label_mode">Eğitim Modu</label>
+          <select id="trainMode" class="form-control">
+            <option value="cascade" data-i18n="train.mode_cascade">Cascade (önerilen)</option>
+            <option value="l2" data-i18n="train.mode_l2">L2 Tekli</option>
+            <option value="l1" data-i18n="train.mode_l1">L1 Tekli</option>
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" data-i18n="train.label_lr">Learning Rate</label>
+            <input type="number" id="trainLr" class="form-control" placeholder="0.5" step="0.01" min="0.01" max="2" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="train.label_epoch">Epoch Sayısı</label>
+            <input type="number" id="trainEpoch" class="form-control" placeholder="100" min="1" max="500" />
+          </div>
+        </div>
+        <div class="btn-group mt-2">
+          <button id="btnTrain" class="btn btn--navy btn--lg" onclick="runTrain()">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 2h12v2H4V2zm0 4h12v2H4V6zm0 4h8v2H4v-2z"/></svg>
+            <span data-i18n="train.btn_start">Eğitimi Başlat</span>
+          </button>
+          <button class="btn btn--ghost" onclick="clearTerminal('trainTerminal')" data-i18n="train.btn_clear">Temizle</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card__header">
+        <span class="card__title">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 5h16v2H2V5zm0 4h16v2H2V9zm0 4h10v2H2v-2z"/></svg>
+          <span data-i18n="train.output_title">Eğitim Çıktısı</span>
+        </span>
+        <span id="trainStatus" class="badge badge--source" data-i18n="train.status_waiting">Bekliyor</span>
+      </div>
+      <div class="card__body" style="padding:0;">
+        <div id="trainTerminal" class="terminal" style="border-radius:0 0 var(--radius-lg) var(--radius-lg);" data-i18n="train.terminal_empty">Eğitim başlatıldığında çıktı burada görünür...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ TAB: DEĞERLENDİRME ════════════════════ -->
+<div id="tab-evaluate" class="tab-panel">
+  <div class="grid-2">
+    <div class="card">
+      <div class="card__header">
+        <span class="card__title">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 1016 0A8 8 0 002 10z"/></svg>
+          <span data-i18n="eval.card_title">Değerlendirme Ayarları</span>
+        </span>
+      </div>
+      <div class="card__body">
+        <div class="form-group">
+          <label class="form-label" data-i18n="eval.label_dataset">Test Veri Seti</label>
+          <select id="evalDataset" class="form-control">
+            {% for ds in datasets %}
+            <option value="{{ ds.path }}"
+              {% if 'test' in ds.name.lower() %}selected{% endif %}>
+              {{ ds.name }} ({{ ds.size_kb }} KB)
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="eval.label_mode">Mod (isteğe bağlı)</label>
+          <select id="evalMode" class="form-control">
+            <option value="" data-i18n="eval.mode_auto">Otomatik (model dosyasından oku)</option>
+            <option value="cascade">Cascade</option>
+            <option value="l2">L2</option>
+            <option value="l1">L1</option>
+          </select>
+        </div>
+        <button id="btnEval" class="btn btn--primary btn--lg mt-2" onclick="runEvaluate()">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 4l11 6-11 6V4z"/></svg>
+          <span data-i18n="eval.btn_run">Değerlendirmeyi Çalıştır</span>
+        </button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card__header">
+        <span class="card__title">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 5h16v2H2V5zm0 4h16v2H2V9zm0 4h10v2H2v-2z"/></svg>
+          <span data-i18n="eval.result_title">Sonuçlar</span>
+        </span>
+        <span id="evalStatus" class="badge badge--source" data-i18n="eval.status_waiting">Bekliyor</span>
+      </div>
+      <div class="card__body" style="padding:0;">
+        <div id="evalLoading" class="loading-overlay hidden"><div class="spinner"></div><span data-i18n="eval.loading">Değerlendiriliyor...</span></div>
+        <div id="evalMetrics" class="hidden" style="padding:16px;"></div>
+        <div id="evalTerminal" class="terminal" style="border-radius:0 0 var(--radius-lg) var(--radius-lg);" data-i18n="eval.terminal_empty">Değerlendirme çıktısı burada görünür...</div>
+      </div>
+    </div>
+  </div>
+
+  {% if plots %}
+  <div class="card mt-3">
+    <div class="card__header">
+      <span class="card__title">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 3h14v14H3V3z"/></svg>
+        <span data-i18n="eval.plots_title">Kayıtlı Grafikler</span>
+      </span>
+    </div>
+    <div class="card__body">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+        {% for plot in plots %}
+        <div style="border:1px solid var(--app-gray-200);border-radius:var(--radius-md);overflow:hidden;">
+          <img src="{{ url_for('ml.serve_plot', filename=plot) }}" alt="{{ plot }}"
+               style="width:100%;display:block;cursor:zoom-in;"
+               onclick="openImageModal(this.src, '{{ plot }}')" />
+          <p style="padding:8px 12px;font-size:0.78rem;color:var(--app-gray-500);">{{ plot }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ════════════════════ TAB: t-SNE ════════════════════ -->
+<div id="tab-tsne" class="tab-panel">
+  <div class="grid-2">
+    <div class="card">
+      <div class="card__header">
+        <span class="card__title">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 3h14v14H3V3zm2 2v10h10V5H5z"/></svg>
+          <span data-i18n="tsne.card_title">t-SNE Parametreleri</span>
+        </span>
+      </div>
+      <div class="card__body">
+        <div class="form-group">
+          <label class="form-label" data-i18n="tsne.label_dataset">Veri Seti (isteğe bağlı)</label>
+          <select id="tsneDataset" class="form-control">
+            <option value="" data-i18n="tsne.default_dataset">Varsayılan (train.txt)</option>
+            {% for ds in datasets %}
+            <option value="{{ ds.path }}">{{ ds.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="tsne.label_n">Örnek Sayısı (N)</label>
+          <input type="number" id="tsneN" class="form-control" value="500" min="50" max="2000" />
+        </div>
+        <div class="alert alert--info mt-1">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm1 11H9v-2h2v2zm0-4H9V5h2v4z"/></svg>
+          <span data-i18n="tsne.info">t-SNE hesaplama birkaç dakika sürebilir. Sabırlı olun.</span>
+        </div>
+        <button id="btnTsne" class="btn btn--navy btn--lg mt-2" onclick="runTsne()">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 4l11 6-11 6V4z"/></svg>
+          <span data-i18n="tsne.btn_run">t-SNE Çalıştır</span>
+        </button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card__header">
+        <span class="card__title">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 3h14v14H3V3z"/></svg>
+          <span data-i18n="tsne.result_title">Görselleştirme</span>
+        </span>
+        <span id="tsneStatus" class="badge badge--source" data-i18n="tsne.status_waiting">Bekliyor</span>
+      </div>
+      <div class="card__body" id="tsneResultArea">
+        <div id="tsneLoading" class="loading-overlay hidden">
+          <div class="spinner"></div>
+          <span data-i18n="tsne.loading">t-SNE hesaplanıyor, lütfen bekleyin...</span>
+        </div>
+        <div id="tsneImage" class="hidden" style="text-align:center;">
+          <img id="tsneImg" src="" alt="t-SNE" style="max-width:100%;border-radius:var(--radius-md);box-shadow:var(--shadow-md);" />
+        </div>
+        <div id="tsneEmpty" style="text-align:center;padding:40px 0;color:var(--app-gray-500);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+               style="width:52px;height:52px;margin:0 auto 12px;display:block;opacity:.35">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/><circle cx="15.5" cy="8.5" r="1.5"/>
+            <circle cx="8.5" cy="15.5" r="1.5"/><circle cx="15.5" cy="15.5" r="1.5"/>
+          </svg>
+          <p data-i18n="tsne.empty">t-SNE çalıştırıldığında görsel burada belirir.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card mt-3">
+    <div class="card__header"><span class="card__title" data-i18n="tsne.output_title">Çıktı</span></div>
+    <div class="card__body" style="padding:0;">
+      <div id="tsneTerminal" class="terminal" style="border-radius:0 0 var(--radius-lg) var(--radius-lg);" data-i18n="tsne.terminal_empty">t-SNE çıktısı burada görünür...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ TAB: DENEYLER ════════════════════ -->
+<div id="tab-experiments" class="tab-panel">
+  <div class="card">
+    <div class="card__header">
+      <span class="card__title">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 3h10l2 4-7 10L3 7l2-4z"/></svg>
+        <span data-i18n="exp.card_title">Değerlendirme Sonuçları (models/experiments/)</span>
+      </span>
+      <button class="btn btn--ghost btn--sm" onclick="refreshExperiments()" data-i18n="exp.btn_refresh">Yenile</button>
+    </div>
+    <div class="card__body" style="padding:0;">
+      {% if experiments %}
+      <div class="table-wrapper">
+        <table id="expTable">
+          <thead>
+            <tr>
+              <th data-i18n="exp.col_time">Zaman</th>
+              <th data-i18n="exp.col_mode">Mod</th>
+              <th data-i18n="exp.col_source">Kaynak</th>
+              <th data-i18n="exp.col_l1acc">L1 Accuracy</th>
+              <th data-i18n="exp.col_l2acc">L2 Accuracy</th>
+              <th data-i18n="exp.col_l1f1">L1 Macro-F1</th>
+              <th data-i18n="exp.col_l2f1">L2 Macro-F1</th>
+              <th data-i18n="exp.col_n">Örnek</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for exp in experiments %}
+            <tr>
+              <td style="font-size:0.8rem;white-space:nowrap;">{{ exp.timestamp }}</td>
+              <td><span class="exp-mode-badge {{ exp.mode }}">{{ exp.mode }}</span></td>
+              <td style="font-size:0.8rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                  title="{{ exp.source }}">{{ exp.source | default('?') }}</td>
+              <td>
+                {% if exp.accuracy_l1 is not none %}
+                  <span style="font-weight:700;color:var(--app-navy);">
+                    {{ "%.1f"|format(exp.accuracy_l1 * 100) }}%
+                  </span>
+                {% else %}-{% endif %}
+              </td>
+              <td>
+                {% if exp.accuracy_l2 is not none %}
+                  <span style="font-weight:700;color:var(--app-navy);">
+                    {{ "%.1f"|format(exp.accuracy_l2 * 100) }}%
+                  </span>
+                {% else %}-{% endif %}
+              </td>
+              <td>
+                {% if exp.macro_f1_l1 is not none %}
+                  {{ "%.3f"|format(exp.macro_f1_l1) }}
+                {% else %}-{% endif %}
+              </td>
+              <td>
+                {% if exp.macro_f1_l2 is not none %}
+                  {{ "%.3f"|format(exp.macro_f1_l2) }}
+                {% else %}-{% endif %}
+              </td>
+              <td>{{ exp.n_samples | default('-') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted" style="padding:20px;" data-i18n="exp.empty">Henüz değerlendirme yapılmamış.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

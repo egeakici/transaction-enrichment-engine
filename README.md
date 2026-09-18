@@ -17,6 +17,7 @@
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [CLI Reference](#cli-reference)
+- [Web Frontend](#web-frontend)
 - [Taxonomy](#taxonomy)
 - [Data Schema](#data-schema)
 - [Performance](#performance)
@@ -344,6 +345,25 @@ python main.py taxonomy
 
 ---
 
+## Web Frontend
+
+A Flask web UI for the pipeline, located in `frontend/`. The interface starts in English; a TR/EN toggle in the top bar switches the language.
+
+```bash
+python frontend/run.py
+```
+
+The app runs at `http://127.0.0.1:5051` and opens in your browser automatically. `run.py` re-launches itself with `.venv/` (or `venv/`) Python if one exists in the project root.
+
+| Page | Features |
+|------|----------|
+| **Analysis** (`/ml/`) | Predict a single merchant, train and evaluate models with live output, run t-SNE, browse saved plots and evaluation results |
+| **Statements** (`/statement/`) | Paste statement lines (`Date  Description  Amount`) and list them by date, or classify them into L1 groups with a category distribution chart |
+
+> **Note:** The frontend uses the same `data/` and `models/` directories as the CLI. Prediction and statement classification require a trained model, and the evaluation results table stays empty until you run an evaluation. Since neither directory is included in the repository, train a model first (see [Quick Start](#quick-start)).
+
+---
+
 ## Taxonomy
 
 16 L1 categories × 100+ active L2 sub-categories.
@@ -490,7 +510,7 @@ L1 model fine-tuned on 14K samples (BERTurk, representative checkpoints):
 
 ## Project Structure
 
-Only source files are tracked; data, models, and the frontend are excluded (see below).
+Only source files are tracked; data and models are excluded (see below).
 
 ```
 transaction-enrichment-engine/
@@ -506,6 +526,13 @@ transaction-enrichment-engine/
 │   ├── router.py              # Layer 4 — HybridRouter + confidence logic
 │   └── visualizer.py          # Matplotlib plot generation
 │
+├── frontend/                  # Flask web UI
+│   ├── run.py                 # Launcher — python frontend/run.py
+│   ├── app.py                 # Flask app factory
+│   ├── routes/                # ML panel and statement endpoints
+│   ├── templates/             # Jinja2 pages
+│   └── static/                # CSS and JavaScript (incl. TR/EN translations)
+│
 └── tests/
     └── test_pipeline.py       # Unit and smoke tests
 ```
@@ -516,7 +543,6 @@ transaction-enrichment-engine/
 |------|--------|
 | `data/` | Training CSVs and `catalog.json` — not distributed |
 | `models/` | Trained BERTurk weights — too large for git |
-| `frontend/` | Flask web UI — lives in a separate repository |
 | `venv/` / `.venv/` | Virtual environment |
 
 Model directory layout after training:
